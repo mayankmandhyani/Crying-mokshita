@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>MOKSHITA: The Quest for Common Sense</title>
+<meta name="description" content="A personalized Raksha Bandhan gift game. Mokshita searches for Common Sense. She will not find it." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ BOOT / LOADING SCREEN ============ -->
+  <div id="boot-screen" class="screen active">
+    <div class="boot-inner">
+      <div class="boot-brain">🧠</div>
+      <h1 class="boot-title">MOKSHITA</h1>
+      <p class="boot-subtitle">The Quest for Common Sense</p>
+      <div class="boot-bar-track">
+        <div class="boot-bar-fill" id="boot-bar-fill"></div>
+      </div>
+      <p class="boot-status" id="boot-status">Calibrating absurdity levels…</p>
+    </div>
+  </div>
+
+  <!-- ============ MAIN MENU ============ -->
+  <div id="menu-screen" class="screen">
+    <div class="menu-bg-blob blob-1"></div>
+    <div class="menu-bg-blob blob-2"></div>
+    <div class="menu-bg-blob blob-3"></div>
+
+    <div class="menu-card">
+      <div class="menu-eyebrow">A Raksha Bandhan Production</div>
+      <h1 class="menu-title">MOKSHITA</h1>
+      <h2 class="menu-subtitle">The Quest for <span class="highlight">Common Sense</span></h2>
+      <p class="menu-tagline">She is close. She is always close. She will not get there.</p>
+
+      <div class="menu-buttons">
+        <button class="btn btn-primary btn-big" id="btn-start">Begin the Quest</button>
+        <button class="btn btn-ghost" id="btn-howto">How to Play</button>
+      </div>
+
+      <div class="menu-footer">
+        <span>Made with questionable intentions by</span>
+        <strong>Mayank</strong>
+      </div>
+    </div>
+
+    <button class="icon-btn mute-btn" id="mute-btn" aria-label="Mute">🔊</button>
+    <button class="secret-dot" id="secret-dot" aria-label=""></button>
+  </div>
+
+  <!-- ============ HOW TO PLAY MODAL ============ -->
+  <div id="howto-modal" class="modal-overlay">
+    <div class="modal-panel">
+      <h3>How to Play</h3>
+      <div class="howto-grid">
+        <div class="howto-item"><span class="key">← → / A D</span><span>Move</span></div>
+        <div class="howto-item"><span class="key">Space / ↑ / W</span><span>Jump</span></div>
+        <div class="howto-item"><span class="key">On Mobile</span><span>Use the on-screen buttons</span></div>
+      </div>
+      <p class="howto-note">Objective: collect all the Common Sense™ orbs. Results not guaranteed.</p>
+      <button class="btn btn-primary" id="btn-howto-close">Got it</button>
+    </div>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hud-left">
+        <div class="hud-pill" id="hud-level">LEVEL 1</div>
+        <div class="hud-pill hud-title-pill" id="hud-level-title">The Search Begins</div>
+      </div>
+      <div class="hud-right">
+        <div class="hud-pill hud-cs">
+          <span class="hud-cs-icon">🧠</span>
+          <span id="hud-cs-value">0</span>
+          <span class="hud-cs-label">Common Sense</span>
+        </div>
+        <button class="icon-btn" id="mute-btn-game" aria-label="Mute">🔊</button>
+        <button class="icon-btn" id="pause-btn" aria-label="Pause">⏸</button>
+      </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <div class="toast-stack" id="toast-stack"></div>
+
+    <!-- Mobile controls -->
+    <div class="mobile-controls" id="mobile-controls">
+      <div class="mobile-dpad">
+        <button class="mobile-btn" id="btn-left" aria-label="Left">◀</button>
+        <button class="mobile-btn" id="btn-right" aria-label="Right">▶</button>
+      </div>
+      <button class="mobile-btn mobile-jump" id="btn-jump" aria-label="Jump">▲</button>
+    </div>
+  </div>
+
+  <!-- ============ PAUSE OVERLAY ============ -->
+  <div id="pause-modal" class="modal-overlay">
+    <div class="modal-panel">
+      <h3>Paused</h3>
+      <p class="howto-note">Common Sense will still be zero when you return.</p>
+      <div class="modal-btn-col">
+        <button class="btn btn-primary" id="btn-resume">Resume</button>
+        <button class="btn btn-ghost" id="btn-restart-level">Restart Level</button>
+        <button class="btn btn-ghost" id="btn-quit-menu">Quit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LEVEL TRANSITION SCREEN ============ -->
+  <div id="transition-screen" class="screen">
+    <div class="transition-card" id="transition-card">
+      <!-- populated dynamically by ui.js -->
+    </div>
+  </div>
+
+  <!-- ============ FINAL SCREEN ============ -->
+  <div id="final-screen" class="screen">
+    <div class="confetti-layer" id="confetti-layer"></div>
+    <div class="final-card">
+      <h1 class="final-title">🎉 YOU COMPLETED THE GAME 🎉</h1>
+      <p class="final-line" id="final-line-1">Congratulations, Mokshita.</p>
+      <p class="final-line dim" id="final-line-2"></p>
+
+      <div class="final-counter-wrap">
+        <p class="final-counter-label">Common Sense acquired:</p>
+        <div class="final-counter" id="final-counter">0</div>
+        <p class="final-counter-sub">Still, impressive performance.</p>
+      </div>
+
+      <div class="status-report">
+        <div class="status-report-title">MOKSHITA<br/><span>STATUS REPORT</span></div>
+        <div class="status-row"><span>Levels completed</span><strong>5 / 5</strong></div>
+        <div class="status-row"><span>Parkour survived</span><strong>YES</strong></div>
+        <div class="status-row"><span>Common Sense acquired</span><strong>0</strong></div>
+        <div class="status-row"><span>Effort</span><strong>Questionable</strong></div>
+        <div class="status-row"><span>Entertainment value</span><strong>100%</strong></div>
+      </div>
+
+      <p class="final-signoff">Happy Raksha Bandhan ❤️<br/><span>From Mayank</span></p>
+
+      <button class="btn btn-primary btn-big" id="btn-play-again">Play Again</button>
+    </div>
+  </div>
+
+  <!-- ============ SECRET MAYANK MODE ============ -->
+  <div id="secret-modal" class="modal-overlay">
+    <div class="modal-panel secret-panel">
+      <div class="secret-emoji">🕵️</div>
+      <h3>YOU FOUND THE SECRET MAYANK MODE.</h3>
+      <p class="howto-note">Congratulations. You have discovered something Mokshita was not supposed to find.</p>
+      <p class="howto-note secret-msg" id="secret-message"></p>
+      <button class="btn btn-primary" id="btn-secret-close">Close (Suspiciously Fast)</button>
+    </div>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="player.js"></script>
+  <script src="levels.js"></script>
+  <script src="ui.js"></script>
+  <script src="game.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

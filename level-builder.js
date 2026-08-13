@@ -36,18 +36,6 @@ export class BuiltLevel {
   }
 }
 
-function lerpColor(c1, c2, t) {
-  const a = hexToRgb(c1), b = hexToRgb(c2);
-  const r = Math.round(a.r + (b.r - a.r) * t);
-  const g = Math.round(a.g + (b.g - a.g) * t);
-  const bl = Math.round(a.b + (b.b - a.b) * t);
-  return `rgb(${r},${g},${bl})`;
-}
-function hexToRgb(hex) {
-  const n = parseInt(hex.replace('#', ''), 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
 export function drawBackground(ctx, w, h, palette, camX, elapsed) {
   // sky gradient
   const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -55,6 +43,50 @@ export function drawBackground(ctx, w, h, palette, camX, elapsed) {
   grad.addColorStop(1, palette.sky[0]);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
+}
+
+// Procedural rolling-hills midground silhouette. Generated from a fixed
+// sine-wave formula (not per-level data) so it automatically fills the
+// otherwise-empty vertical space above the playable band on tall
+// portrait viewports, and adds a genuine parallax depth cue during
+// horizontal scrolling without needing hand-authored art per level.
+export function drawMidground(ctx, w, h, palette, camX, camY, groundY) {
+  const parallax = 0.55; // between the far decorations (0.35) and the foreground (1.0)
+  const baseY = groundY - 6; // hills sit just above the ground line
+  const amplitude = 34;
+  const wavelength = 340;
+  const bottomWorldY = camY + h + 20; // bottom of the current viewport, in world-space (we're drawing post camera-translate)
+
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = palette.groundTop;
+  ctx.beginPath();
+  ctx.moveTo(0, bottomWorldY);
+  const step = 24;
+  for (let sx = 0; sx <= w + step; sx += step) {
+    const worldX = sx + camX * parallax;
+    const hillY = baseY - amplitude - Math.sin(worldX / wavelength) * amplitude * 0.6 - Math.sin(worldX / (wavelength * 0.37) + 1.4) * amplitude * 0.25;
+    ctx.lineTo(sx, hillY);
+  }
+  ctx.lineTo(w, bottomWorldY);
+  ctx.closePath();
+  ctx.fill();
+
+  // a second, slightly darker/closer hill band for extra depth
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = palette.ground;
+  ctx.beginPath();
+  ctx.moveTo(0, bottomWorldY);
+  const parallax2 = 0.7;
+  for (let sx = 0; sx <= w + step; sx += step) {
+    const worldX = sx + camX * parallax2;
+    const hillY = baseY - amplitude * 0.55 - Math.sin(worldX / (wavelength * 0.6) + 2.1) * amplitude * 0.4;
+    ctx.lineTo(sx, hillY);
+  }
+  ctx.lineTo(w, bottomWorldY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 export function drawDecorations(ctx, decorations, camX, w, elapsed, palette) {

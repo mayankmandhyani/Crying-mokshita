@@ -43,10 +43,14 @@ function roundRect(ctx, x, y, w, h, r) {
  *   t: number                animation time in seconds for this pose
  *   expression: 'sad'|'happy'
  *   squash: number 0..1      landing squash amount
+ *   vy: number                vertical velocity (px/s, +down) -- used to
+ *                              shape the jump/fall silhouette so rising
+ *                              fast, hanging near the apex, and falling
+ *                              fast all read as visibly different poses.
  * }
  */
 export function drawCharacter(ctx, feetX, feetY, opts) {
-  const { facing = 1, pose = 'idle', t = 0, expression = 'sad', squash = 0 } = opts;
+  const { facing = 1, pose = 'idle', t = 0, expression = 'sad', squash = 0, vy = 0 } = opts;
 
   ctx.save();
   ctx.translate(feetX, feetY);
@@ -59,6 +63,14 @@ export function drawCharacter(ctx, feetX, feetY, opts) {
   let leanX = 0;
   let squashX = 1, squashY = 1;
   let tiltZ = 0;
+  // Leg tuck: 0 = fully extended (standing), 1 = fully tucked toward
+  // the body (knees-up mid-air). Distinct from legSwing (which is a
+  // running/walking swing angle) -- tuck actually shortens the drawn
+  // leg length, changing the silhouette height, not just the angle.
+  let legTuck = 0;
+  let legReach = 0; // uniform forward-angle for BOTH legs together (bracing for landing), distinct from legSwing's alternating gait
+  let armsUp = 0; // 0 = arms at sides, 1 = arms raised overhead
+  let stretchY = 1; // >1 stretches the whole body taller (rising), <1 compresses (falling fast, pre-landing)
 
   if (pose === 'idle') {
     bodyBob = Math.sin(t * 2.4) * 1.1;
@@ -70,15 +82,31 @@ export function drawCharacter(ctx, feetX, feetY, opts) {
     bodyBob = Math.abs(Math.sin(t * speed)) * 1.8;
     leanX = 1.5;
   } else if (pose === 'jump') {
-    legSwing = -0.4;
-    armSwing = 0.9;
-    leanX = 1;
+    // Distinct rise-phase silhouette: knees pulled up toward the body
+    // (shortens legs, clearly reads as "airborne" rather than
+    // "standing"), arms thrown up overhead, torso stretched taller.
+    // Blend from a launch crouch (t=0) into a full tuck quickly.
+    const launchT = Math.min(1, t / 0.08); // quick snap into the tucked pose
+    legTuck = 0.75 * launchT;
+    armsUp = 0.9 * launchT;
+    stretchY = 1 + 0.08 * launchT;
+    leanX = 1.5;
   } else if (pose === 'fall') {
-    legSwing = 0.25;
-    armSwing = -0.6;
+    // Falling silhouette changes with fall speed: near the apex (low
+    // |vy|) the body hangs loosely with legs tucked; as fall speed
+    // increases toward landing, legs extend clearly DOWN/forward to
+    // "brace" for impact and arms drop, telegraphing an incoming
+    // landing rather than looking identical to the rising pose.
+    const fallSpeed01 = Math.min(1, Math.abs(vy) / 400);
+    legTuck = 0.5 * (1 - fallSpeed01); // apex: tucked; fast fall: fully extended
+    legReach = -0.5 * fallSpeed01; // both legs angle forward together, reaching for the ground
+    armsUp = 0.45 * (1 - fallSpeed01);
+    stretchY = 1 - 0.06 * fallSpeed01;
+    leanX = 1;
   } else if (pose === 'land') {
     squashX = 1 + squash * 0.22;
     squashY = 1 - squash * 0.28;
+    legTuck = -0.1 * squash; // legs splay slightly on impact
   } else if (pose === 'dead') {
     tiltZ = Math.min(1, t / 0.3) * 1.4;
   } else if (pose === 'celebrate') {
@@ -89,22 +117,27 @@ export function drawCharacter(ctx, feetX, feetY, opts) {
   }
 
   ctx.rotate(tiltZ);
-  ctx.scale(squashX, squashY);
+  ctx.scale(squashX, squashY * stretchY);
   ctx.translate(leanX, 0);
 
   const y0 = -bodyBob; // top-of-body reference shift
 
   // ================= LEGS =================
-  const legLen = 12;
+  // legTuck shortens the drawn leg length and rotates the knee up/back,
+  // giving jump/fall a genuinely different silhouette height instead of
+  // reusing the standing leg length with just a swing angle.
+  const legLenBase = 12;
+  const legLen = legLenBase * (1 - legTuck * 0.55);
   const legW = 5;
   const hipY = -12 + y0;
+  const tuckAngle = legTuck * 0.9;
 
-  drawLimb(ctx, -4, hipY, legLen, legW, legSwing * 0.5, PALETTE.jeans, PALETTE.jeansShade);
-  drawLimb(ctx, 4, hipY, legLen, legW, -legSwing * 0.5, PALETTE.jeans, PALETTE.jeansShade);
+  drawLimb(ctx, -4, hipY, legLen, legW, legSwing * 0.5 - tuckAngle + legReach, PALETTE.jeans, PALETTE.jeansShade);
+  drawLimb(ctx, 4, hipY, legLen, legW, -legSwing * 0.5 - tuckAngle + legReach, PALETTE.jeans, PALETTE.jeansShade);
 
-  // shoes (drawn at end of each leg, follow the same swing)
-  drawShoe(ctx, -4, hipY, legLen, legSwing * 0.5);
-  drawShoe(ctx, 4, hipY, legLen, -legSwing * 0.5);
+  // shoes (drawn at end of each leg, follow the same swing/tuck)
+  drawShoe(ctx, -4, hipY, legLen, legSwing * 0.5 - tuckAngle + legReach);
+  drawShoe(ctx, 4, hipY, legLen, -legSwing * 0.5 - tuckAngle + legReach);
 
   // ================= TORSO =================
   const torsoW = 16, torsoH = 16;
@@ -117,9 +150,12 @@ export function drawCharacter(ctx, feetX, feetY, opts) {
   ctx.fill();
 
   // ================= ARMS =================
+  // armsUp raises the arm origin/angle toward overhead (reads instantly
+  // as "jumping"), separate from the run-cycle armSwing.
   const armY = torsoY + 3;
-  drawLimb(ctx, -9, armY, 11, 4, -armSwing * 0.6, PALETTE.shirt, PALETTE.shirtShade, true);
-  drawLimb(ctx, 9, armY, 11, 4, armSwing * 0.6, PALETTE.shirt, PALETTE.shirtShade, true);
+  const raiseAngle = armsUp * 2.3; // radians toward overhead
+  drawLimb(ctx, -9, armY, 11, 4, -armSwing * 0.6 - raiseAngle, PALETTE.shirt, PALETTE.shirtShade, true);
+  drawLimb(ctx, 9, armY, 11, 4, armSwing * 0.6 + raiseAngle, PALETTE.shirt, PALETTE.shirtShade, true);
 
   // ================= HEAD =================
   const headR = 9.5;

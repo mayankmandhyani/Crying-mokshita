@@ -96,8 +96,11 @@ export const LEVEL_1 = {
     { x: 2060, y: 450, w: 60, h: 30 },
   ],
   collectibles: [
-    { id: 'l1-a', x: 830, y: GROUND_Y - 75 },
-    { id: 'l1-b', x: 1995, y: GROUND_Y - 115 },
+    { id: 'l1-a', x: 410, y: 435 },
+    { id: 'l1-b', x: 630, y: 395 },
+    { id: 'l1-c', x: 830, y: 395 },
+    { id: 'l1-d', x: 1040, y: 355 },
+    { id: 'l1-e', x: 1805, y: 395 },
   ],
   checkpoints: [
     { id: 'l1-cp1', x: 1530, y: GROUND_Y },
@@ -146,6 +149,10 @@ export const LEVEL_2 = {
   collectibles: [
     { id: 'l2-a', x: 679, y: 335 },
     { id: 'l2-b', x: 1812, y: 265 },
+    { id: 'l2-c', x: 511, y: 365 },
+    { id: 'l2-d', x: 852, y: 375 },
+    { id: 'l2-e', x: 1173, y: 335 },
+    { id: 'l2-f', x: 1970, y: 295 },
   ],
   checkpoints: [
     { id: 'l2-cp1', x: 1416, y: 380 },
@@ -195,6 +202,11 @@ export const LEVEL_3 = {
   ],
   collectibles: [
     { id: 'l3-a', x: 1126, y: 315 },
+    { id: 'l3-b', x: 301, y: 398 },
+    { id: 'l3-c', x: 603, y: 318 },
+    { id: 'l3-d', x: 905, y: 318 },
+    { id: 'l3-e', x: 1488, y: 243 },
+    { id: 'l3-f', x: 1780, y: 243 },
   ],
   checkpoints: [
     { id: 'l3-cp1', x: 1100, y: 360 },

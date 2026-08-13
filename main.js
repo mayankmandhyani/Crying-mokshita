@@ -7,7 +7,7 @@
 import { Player } from './player.js';
 import { drawCharacter, drawCollectible } from './sprites.js';
 import {
-  BuiltLevel, drawBackground, drawDecorations, drawGround, drawHazards,
+  BuiltLevel, drawBackground, drawMidground, drawDecorations, drawGround, drawHazards,
   drawCheckpoints, drawCollectibleMarkers, drawGate, drawPortal,
 } from './level-builder.js';
 import { LEVELS, PALETTES, TOTAL_COMMON_SENSE } from './levels.js';
@@ -17,9 +17,11 @@ import { AudioSystem } from './audio.js';
 import { UI } from './ui.js';
 import { DEATH_Y } from './physics.js';
 
-const RENDER_WIDTH = 480; // logical horizontal resolution (fixed reference)
-const MIN_RENDER_HEIGHT = 220; // never show less vertical world than this
-const MAX_RENDER_HEIGHT = 340; // never show more than this (keeps camera framing sane)
+const MIN_RENDER_WIDTH = 300; // never show less horizontal world than this (keeps upcoming jumps/hazards visible for planning)
+const MAX_RENDER_WIDTH = 480; // never show more (keeps the character from reading too small on wide screens)
+const MIN_RENDER_HEIGHT = 220;
+const MAX_RENDER_HEIGHT = 1000;
+const TARGET_CHAR_CSS_PX = 50; // desired on-screen character height in CSS pixels, used to size RENDER_WIDTH per viewport
 
 const STATE = {
   LOADING: 'LOADING',
@@ -51,7 +53,7 @@ class Game {
 
     this._transitionLock = false;
 
-    this.camera = new Camera2D(RENDER_WIDTH, 280); // placeholder height; corrected by _onResize below
+    this.camera = new Camera2D(400, 280); // placeholder; corrected by _onResize below
     this.particles = new ParticleSystem();
     this.confetti = new Confetti();
 
@@ -80,29 +82,37 @@ class Game {
     const availW = window.innerWidth;
     const availH = window.innerHeight;
 
-    // Derive the internal vertical resolution from the actual viewport
-    // aspect ratio so the canvas fills the screen with no letterboxing,
-    // while clamping so extreme aspect ratios (very tall phones, very
-    // wide desktops) don't break level framing.
-    const aspect = availH / availW;
-    let renderHeight = Math.round(RENDER_WIDTH * aspect);
-    renderHeight = Math.max(MIN_RENDER_HEIGHT, Math.min(MAX_RENDER_HEIGHT, renderHeight));
+    // RENDER_WIDTH is chosen per-viewport (not a fixed constant) so the
+    // character reads at a consistent, comfortable on-screen size on
+    // every device -- narrower screens show LESS world horizontally
+    // (zooming in relatively), which keeps a phone's small physical
+    // width from making the character look tiny, while still leaving
+    // enough width (MIN_RENDER_WIDTH) to see upcoming jumps/hazards.
+    // PLAYER_HEIGHT (world px) is a fixed physics constant (30); see
+    // physics.js.
+    const idealRenderWidth = Math.round((30 * availW) / TARGET_CHAR_CSS_PX);
+    const renderWidth = Math.max(MIN_RENDER_WIDTH, Math.min(MAX_RENDER_WIDTH, idealRenderWidth));
 
-    this.renderWidth = RENDER_WIDTH;
+    // renderHeight matches the viewport's real aspect ratio (derived
+    // from the CHOSEN renderWidth above), so the canvas fills the
+    // screen with a uniform (non-distorting) scale and no letterboxing.
+    const aspect = availH / availW;
+    const renderHeight = Math.max(MIN_RENDER_HEIGHT, Math.min(MAX_RENDER_HEIGHT, Math.round(renderWidth * aspect)));
+
+    this.renderWidth = renderWidth;
     this.renderHeight = renderHeight;
 
-    const scale = Math.min(availW / RENDER_WIDTH, availH / renderHeight);
-    const cssW = RENDER_WIDTH * scale;
-    const cssH = renderHeight * scale;
+    this.canvas.style.width = `${availW}px`;
+    this.canvas.style.height = `${availH}px`;
+    this.canvas.width = Math.round(availW * dpr);
+    this.canvas.height = Math.round(availH * dpr);
 
-    this.canvas.style.width = `${cssW}px`;
-    this.canvas.style.height = `${cssH}px`;
-    this.canvas.width = RENDER_WIDTH * dpr;
-    this.canvas.height = renderHeight * dpr;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const scale = (availW * dpr) / renderWidth; // == (availH*dpr)/renderHeight by construction
+    this.ctx.setTransform(scale, 0, 0, scale, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
 
     if (this.camera) {
+      this.camera.viewW = renderWidth;
       this.camera.viewH = renderHeight;
       if (this.built) this.camera.snapTo(this.player.x, this.player.y, this.built.levelWidth, this.built.groundY);
     }
@@ -413,6 +423,7 @@ class Game {
     ctx.translate(0, -camY);
 
     drawDecorations(ctx, this.built.decorations, camX, w, this.elapsed, palette);
+    drawMidground(ctx, w, h, palette, camX, camY, this.built.groundY);
     drawGround(ctx, this.built, palette, camX, w, h);
     drawHazards(ctx, this.built.hazards, palette, camX, w, this.elapsed);
     drawCheckpoints(ctx, this.built.checkpoints, palette, camX, w, this.elapsed);
@@ -429,6 +440,7 @@ class Game {
         t: this.player.animTime,
         expression: this.player.expression,
         squash: this.player.landSquash,
+        vy: this.player.vy,
       });
     }
 

@@ -12,7 +12,7 @@ const LOOKAHEAD = 60;
 const SMOOTH_X = 5.5;
 const SMOOTH_Y = 3.2;
 const TOP_MARGIN = 40;    // keep at least this much screen space above the player
-const BOTTOM_ANCHOR = 0.68; // resting fraction of screen height below which ground sits
+const BOTTOM_ANCHOR = 0.60; // resting fraction of screen height below which ground sits -- kept a bit higher than a pure "ground near bottom edge" framing so on-screen touch controls (which live in the bottom ~15-20% of the viewport) have more clearance from actual gameplay elements
 
 export class Camera2D {
   constructor(viewW, viewH) {

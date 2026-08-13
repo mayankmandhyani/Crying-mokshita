@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>The Search for Common Sense</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Loading screen -->
+    <div id="loading-screen">
+      <div class="loading-inner">
+        <div class="loading-title">The Search for Common Sense</div>
+        <div class="loading-bar-track">
+          <div class="loading-bar-fill" id="loading-bar-fill"></div>
+        </div>
+        <div class="loading-sub">a Raksha Bandhan production</div>
+      </div>
+    </div>
+
+    <!-- Fade overlay for transitions -->
+    <div id="fade-overlay"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hud-topleft">
+        <div id="cs-counter">
+          <span class="cs-icon">🧠</span>
+          <span id="cs-count">0</span><span class="cs-slash">/</span><span id="cs-total">0</span>
+        </div>
+        <div id="level-label">Level 1</div>
+      </div>
+    </div>
+
+    <!-- Level intro title card -->
+    <div id="level-intro">
+      <div id="level-intro-number"></div>
+      <div id="level-intro-title"></div>
+    </div>
+
+    <!-- Ending sequence text -->
+    <div id="ending-screen">
+      <div id="ending-text-1" class="ending-line"></div>
+      <div id="ending-text-2" class="ending-line"></div>
+      <div id="ending-text-3" class="ending-line"></div>
+      <div id="ending-text-4" class="ending-line"></div>
+      <button id="restart-btn">Play Again</button>
+    </div>
+
+    <!-- Mobile controls -->
+    <div id="mobile-controls">
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-knob"></div>
+        </div>
+      </div>
+      <button id="jump-btn">⬆</button>
+    </div>
+
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

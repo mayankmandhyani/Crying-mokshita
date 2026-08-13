@@ -1,67 +1,85 @@
 // camera.js
-// Smooth third-person follow camera.
-// Positioned back and above the player at a downward angle so the
-// player occupies roughly 15-25% of vertical screen space and the
-// upcoming path (platforms/gaps/hazards) stays visible.
+// Side-scrolling camera: follows the player horizontally with smooth
+// lerp and a small look-ahead bias. Vertically, the camera mostly
+// holds a level-appropriate resting position (ground comfortably in
+// the lower portion of the frame) but will smoothly pan upward when
+// the player climbs into the level's higher platforms, and back down
+// as they descend -- this keeps very tall level sections readable
+// even on short/wide viewports where a purely static offset can't fit
+// the whole vertical span at once.
 
-import * as THREE from 'three';
+const LOOKAHEAD = 60;
+const SMOOTH_X = 5.5;
+const SMOOTH_Y = 3.2;
+const TOP_MARGIN = 40;    // keep at least this much screen space above the player
+const BOTTOM_ANCHOR = 0.68; // resting fraction of screen height below which ground sits
 
-const FOLLOW_DISTANCE = 7.2;
-const FOLLOW_HEIGHT = 4.4;
-const LOOK_HEIGHT_OFFSET = 1.1; // look slightly above player feet (roughly chest height)
-const LOOK_AHEAD_DISTANCE = 2.6; // bias look target toward direction of travel
-const POSITION_SMOOTH = 4.2;
-const LOOK_SMOOTH = 6.0;
-
-export class GameCamera {
-  constructor(aspect) {
-    this.camera = new THREE.PerspectiveCamera(52, aspect, 0.1, 200);
-    this.currentPos = new THREE.Vector3(0, FOLLOW_HEIGHT, FOLLOW_DISTANCE);
-    this.currentLookAt = new THREE.Vector3(0, LOOK_HEIGHT_OFFSET, 0);
-    this.camera.position.copy(this.currentPos);
+export class Camera2D {
+  constructor(viewW, viewH) {
+    this.viewW = viewW;
+    this.viewH = viewH;
+    this.x = 0;
+    this.y = 0;
+    this.targetLookahead = 0;
   }
 
-  setAspect(aspect) {
-    this.camera.aspect = aspect;
-    this.camera.updateProjectionMatrix();
+  _restingY(groundY) {
+    return groundY - this.viewH * BOTTOM_ANCHOR;
   }
 
-  // Snap instantly (used on respawn / level transitions so the camera
-  // doesn't visibly swoop across the map).
-  snapTo(playerPos, facingAngle) {
-    const desired = this._desiredPosition(playerPos, facingAngle);
-    this.currentPos.copy(desired);
-    this.currentLookAt.set(playerPos.x, playerPos.y + LOOK_HEIGHT_OFFSET, playerPos.z);
-    this.camera.position.copy(this.currentPos);
-    this.camera.lookAt(this.currentLookAt);
+  snapTo(playerX, playerY, levelWidth, groundY) {
+    const desiredX = clamp(playerX - this.viewW / 2, 0, Math.max(0, levelWidth - this.viewW));
+    this.x = desiredX;
+    this.y = this._clampedY(playerY, groundY);
+    this.targetLookahead = 0;
   }
 
-  _desiredPosition(playerPos) {
-    // Camera sits behind the player along -Z travel direction (levels
-    // run down -Z), slightly elevated, looking down at a gentle angle.
-    // We keep it mostly fixed-behind rather than fully orbit-following
-    // rotation for readability (per spec: path must stay readable).
-    return new THREE.Vector3(
-      playerPos.x * 0.35, // slight horizontal parallax toward player x
-      playerPos.y + FOLLOW_HEIGHT,
-      playerPos.z + FOLLOW_DISTANCE
+  // Camera.y (top edge of the visible world, world-space): the resting
+  // position keeps the ground near the bottom of the frame. If the
+  // player climbs high enough that the resting position would put them
+  // within TOP_MARGIN of the top edge (or above it), the camera pans
+  // up just enough to keep TOP_MARGIN of headroom above the player.
+  // It never scrolls lower than the resting position (so the ground
+  // stays anchored once the player is back down near it).
+  _clampedY(playerY, groundY) {
+    const resting = this._restingY(groundY);
+    const requiredForPlayer = playerY - this.viewH + TOP_MARGIN;
+    return Math.min(resting, requiredForPlayer);
+  }
+
+  update(dt, playerX, playerY, facing, levelWidth, groundY) {
+    const desiredLookahead = facing * LOOKAHEAD;
+    this.targetLookahead += (desiredLookahead - this.targetLookahead) * Math.min(1, SMOOTH_X * 0.5 * dt);
+
+    const desiredX = clamp(
+      playerX + this.targetLookahead - this.viewW / 2,
+      0,
+      Math.max(0, levelWidth - this.viewW)
     );
+    this.x += (desiredX - this.x) * Math.min(1, SMOOTH_X * dt);
+
+    const desiredY = this._clampedY(playerY, groundY);
+    this.y += (desiredY - this.y) * Math.min(1, SMOOTH_Y * dt);
   }
 
-  update(dt, playerPos, moveDirZ) {
-    const desired = this._desiredPosition(playerPos);
-    const posT = 1 - Math.exp(-POSITION_SMOOTH * dt);
-    this.currentPos.lerp(desired, posT);
-    this.camera.position.copy(this.currentPos);
-
-    const lookAhead = moveDirZ < 0 ? -LOOK_AHEAD_DISTANCE : (moveDirZ > 0 ? LOOK_AHEAD_DISTANCE * 0.4 : 0);
-    const desiredLook = new THREE.Vector3(
-      playerPos.x * 0.5,
-      playerPos.y + LOOK_HEIGHT_OFFSET,
-      playerPos.z + lookAhead
-    );
-    const lookT = 1 - Math.exp(-LOOK_SMOOTH * dt);
-    this.currentLookAt.lerp(desiredLook, lookT);
-    this.camera.lookAt(this.currentLookAt);
+  shake(amount) {
+    this._shakeAmount = amount;
+    this._shakeTime = 0.25;
   }
+
+  applyShake(dt) {
+    if (this._shakeTime > 0) {
+      this._shakeTime -= dt;
+      const t = Math.max(0, this._shakeTime / 0.25);
+      return {
+        x: (Math.random() - 0.5) * this._shakeAmount * t,
+        y: (Math.random() - 0.5) * this._shakeAmount * t,
+      };
+    }
+    return { x: 0, y: 0 };
+  }
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
 }

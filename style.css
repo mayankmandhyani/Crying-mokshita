@@ -22,15 +22,17 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
 }
 
 #game-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   display: block;
-  outline: none;
 }
 
 /* ---------------- Loading screen ---------------- */
@@ -58,16 +60,16 @@ html, body {
 
 .loading-title {
   font-family: 'Georgia', serif;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: 1px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
   color: #ffd97a;
   text-shadow: 0 0 20px rgba(255, 217, 122, 0.5);
 }
 
 .loading-bar-track {
-  width: 260px;
+  width: 240px;
   height: 8px;
   border-radius: 6px;
   background: rgba(255,255,255,0.12);
@@ -85,7 +87,7 @@ html, body {
 
 .loading-sub {
   margin-top: 14px;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: rgba(255,255,255,0.4);
@@ -100,7 +102,7 @@ html, body {
   background: #050308;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.4s ease;
 }
 
 #fade-overlay.active {
@@ -119,24 +121,24 @@ html, body {
 
 #hud-topleft {
   position: absolute;
-  top: 18px;
-  left: 18px;
+  top: 14px;
+  left: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 #cs-counter {
   display: flex;
   align-items: center;
-  gap: 7px;
-  background: rgba(20, 14, 32, 0.55);
+  gap: 6px;
+  background: rgba(20, 14, 32, 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 217, 122, 0.25);
   border-radius: 999px;
-  padding: 8px 16px 8px 12px;
-  font-size: 17px;
+  padding: 7px 14px 7px 10px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   width: fit-content;
@@ -149,7 +151,7 @@ html, body {
 }
 
 .cs-icon {
-  font-size: 19px;
+  font-size: 17px;
   filter: drop-shadow(0 0 6px rgba(255, 217, 122, 0.7));
 }
 
@@ -160,12 +162,12 @@ html, body {
 }
 
 #level-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: rgba(255,255,255,0.55);
-  padding-left: 14px;
+  padding-left: 12px;
 }
 
 /* ---------------- Level intro ---------------- */
@@ -195,21 +197,21 @@ html, body {
 }
 
 #level-intro-number {
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 5px;
   font-weight: 700;
   color: #ffd97a;
   text-shadow: 0 0 16px rgba(255, 217, 122, 0.6);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 #level-intro-title {
   font-family: 'Georgia', serif;
-  font-size: clamp(22px, 5vw, 38px);
+  font-size: clamp(20px, 5vw, 34px);
   font-weight: 700;
   color: #fff;
   text-shadow: 0 2px 20px rgba(0,0,0,0.8);
-  max-width: 700px;
+  max-width: 640px;
 }
 
 /* ---------------- Ending screen ---------------- */
@@ -237,7 +239,7 @@ html, body {
   opacity: 0;
   transform: translateY(14px);
   transition: opacity 0.8s ease, transform 0.8s ease;
-  max-width: 680px;
+  max-width: 640px;
   line-height: 1.5;
 }
 
@@ -247,32 +249,32 @@ html, body {
 }
 
 #ending-text-1 {
-  font-size: clamp(28px, 6vw, 46px);
+  font-size: clamp(26px, 6vw, 42px);
   font-weight: 800;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
   color: #ffd97a;
   text-shadow: 0 0 30px rgba(255, 217, 122, 0.6);
 }
 
 #ending-text-2 {
-  font-size: clamp(16px, 3vw, 22px);
+  font-size: clamp(15px, 3vw, 20px);
   font-weight: 400;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
   color: rgba(255,255,255,0.92);
 }
 
 #ending-text-3 {
-  font-size: clamp(24px, 5vw, 34px);
+  font-size: clamp(22px, 5vw, 30px);
   font-weight: 700;
   margin-bottom: 10px;
 }
 
 #ending-text-4 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   color: rgba(255,255,255,0.5);
   font-style: italic;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 #restart-btn {
@@ -283,8 +285,8 @@ html, body {
   border: none;
   color: #2a1a0a;
   font-weight: 700;
-  font-size: 15px;
-  padding: 13px 32px;
+  font-size: 14px;
+  padding: 12px 30px;
   border-radius: 999px;
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(255, 154, 86, 0.4);
@@ -307,55 +309,52 @@ html, body {
   z-index: 60;
   pointer-events: none;
   display: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 #mobile-controls.active {
   display: block;
 }
 
-#joystick-zone {
+#dpad {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 42%;
-  height: 46%;
+  left: 22px;
+  bottom: 26px;
+  display: flex;
+  gap: 14px;
   pointer-events: all;
 }
 
-#joystick-base {
-  position: absolute;
-  width: 108px;
-  height: 108px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.28);
+.dpad-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.3);
   backdrop-filter: blur(3px);
-  left: 34px;
-  bottom: 34px;
+  color: #fff;
+  font-size: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#joystick-knob {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: rgba(255, 217, 122, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  position: relative;
-  transition: transform 0.05s linear;
+.dpad-btn:active {
+  background: rgba(255, 217, 122, 0.4);
+  transform: scale(0.94);
 }
 
-#jump-btn {
+#btn-jump {
   position: absolute;
-  right: 30px;
-  bottom: 40px;
-  width: 84px;
-  height: 84px;
+  right: 26px;
+  bottom: 34px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
-  background: rgba(255, 154, 86, 0.35);
-  border: 2px solid rgba(255, 217, 122, 0.6);
+  background: rgba(255, 154, 86, 0.32);
+  border: 2px solid rgba(255, 217, 122, 0.55);
   backdrop-filter: blur(3px);
   color: #fff;
   font-size: 26px;
@@ -363,16 +362,14 @@ html, body {
   box-shadow: 0 4px 14px rgba(0,0,0,0.3);
 }
 
-#jump-btn:active {
-  background: rgba(255, 217, 122, 0.55);
+#btn-jump:active {
+  background: rgba(255, 217, 122, 0.5);
   transform: scale(0.94);
 }
 
-/* ---------------- Utility ---------------- */
-
-@media (max-width: 720px) {
+@media (max-width: 480px) {
   #cs-counter {
-    font-size: 15px;
-    padding: 7px 14px 7px 10px;
+    font-size: 13px;
+    padding: 6px 12px 6px 9px;
   }
 }

@@ -1,132 +1,114 @@
 // validate-levels.mjs
-// Automated geometric validation of level data:
-//  - consecutive platform-to-platform jump distance/height checked against
-//    the real jump physics envelope from physics.js
-//  - hazards must not overlap any platform's walkable footprint
-//  - collectibles must be reachable (near a platform, not floating in void)
-//  - checkpoints must sit on a platform
-//
-// Run: node validate-levels.mjs
+// Automated geometric validation for the 2D levels: consecutive
+// platform jump distance/height checked against the real physics
+// envelope, hazard-vs-platform overlap checks, collectible and
+// checkpoint reachability. Run: node validate-levels.mjs
 
 import { LEVELS } from './levels.js';
-import { isJumpAchievable, jumpProfile, boxBounds } from './physics.js';
+import { isJumpAchievable, jumpProfile } from './physics.js';
 
-const HORIZONTAL_SPEED = 6.2; // conservative estimate of sustained run speed (see player.js MOVE_SPEED in main.js)
+const HORIZONTAL_SPEED = 150; // slightly conservative vs MOVE_SPEED=165 to leave margin
 let failures = 0;
 let warnings = 0;
 
-function dist2D(a, b) {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.z - b.z) ** 2);
-}
-
-function platformTopY(p) {
-  return p.y + p.h / 2;
-}
-
-function edgeGap(a, b) {
-  // approximate gap between the nearest edges of two boxes along the
-  // dominant travel axis, rather than center-to-center distance,
-  // since center distance over-estimates the real jump gap.
-  const centerDist = dist2D(a, b);
-  const aRadius = Math.min(a.w, a.d) / 2;
-  const bRadius = Math.min(b.w, b.d) / 2;
-  return Math.max(0, centerDist - aRadius - bRadius);
+function edgeGapX(a, b) {
+  // horizontal gap between nearest edges (a assumed to the left of b,
+  // but works either direction using max(0, ...))
+  if (a.x + a.w <= b.x) return b.x - (a.x + a.w);
+  if (b.x + b.w <= a.x) return a.x - (b.x + b.w);
+  return 0; // overlapping in x
 }
 
 console.log('='.repeat(60));
-console.log('LEVEL VALIDATION');
+console.log('LEVEL VALIDATION (2D)');
 console.log('='.repeat(60));
 
 const profile = jumpProfile(HORIZONTAL_SPEED);
-console.log(`Jump profile @ speed=${HORIZONTAL_SPEED}: maxHeight=${profile.maxHeight.toFixed(2)}, maxDist=${profile.maxDistance.toFixed(2)}`);
+console.log(`Jump profile @ speed=${HORIZONTAL_SPEED}: maxHeight=${profile.maxHeight.toFixed(1)}px, maxDist=${profile.maxDistance.toFixed(1)}px`);
 console.log('');
 
 for (const level of LEVELS) {
   console.log(`--- Level ${level.id}: ${level.title} ---`);
   const plats = level.platforms;
 
-  // 1. Consecutive platform jump checks
-  for (let i = 0; i < plats.length - 1; i++) {
-    const a = plats[i];
-    const b = plats[i + 1];
-    const gap = edgeGap(a, b);
-    const heightDiff = platformTopY(b) - platformTopY(a);
+  // 1. Consecutive platform jump checks (sorted by x, since level scrolls
+  // left to right and platforms are authored roughly in order already,
+  // but sort defensively)
+  const sorted = [...plats].sort((a, b) => a.x - b.x);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const gap = edgeGapX(a, b);
+    const heightDiff = a.y - b.y; // positive = b is higher (smaller y)
     const ok = isJumpAchievable(gap, heightDiff, HORIZONTAL_SPEED);
     const status = ok ? 'OK  ' : 'FAIL';
     if (!ok) failures++;
-    console.log(`  [${status}] plat ${i}->${i + 1}: gap=${gap.toFixed(2)} heightDiff=${heightDiff.toFixed(2)}`);
+    console.log(`  [${status}] plat ${i}->${i + 1}: gap=${gap.toFixed(0)}px heightDiff=${heightDiff.toFixed(0)}px`);
   }
 
-  // 2. Hazard vs platform overlap check (hazard should NOT sit at/above
-  // any platform's walkable top surface within the same XZ footprint)
+  // 2. Hazard vs platform overlap: hazard should not sit at/above any
+  // platform's walkable top surface within the same x-span.
   for (const hz of level.hazards || []) {
     for (const p of plats) {
-      const dx = Math.abs(hz.x - p.x);
-      const dz = Math.abs(hz.z - p.z);
-      const overlapX = dx < (hz.w / 2 + p.w / 2);
-      const overlapZ = dz < (hz.d / 2 + p.d / 2);
-      if (overlapX && overlapZ) {
-        const platTop = platformTopY(p);
-        if (hz.y >= platTop - 0.3) {
-          console.log(`  [FAIL] hazard at (${hz.x},${hz.z}) overlaps walkable platform top at (${p.x},${p.z})`);
+      const overlapX = hz.x < p.x + p.w && hz.x + hz.w > p.x;
+      if (overlapX) {
+        // hazard is drawn "in the gap" -- its y should be below (greater
+        // y value than) the platform's walkable surface, not coincide
+        // with it.
+        if (hz.y < p.y + p.h - 5 && hz.y + hz.h > p.y - 5) {
+          console.log(`  [FAIL] hazard at x=${hz.x} overlaps platform at x=${p.x} (walkable surface)`);
           failures++;
         }
       }
     }
   }
 
-  // 3. Collectible reachability: must be within reasonable XZ distance
-  // and height of at least one platform (i.e., not floating in the void
-  // unreachably far from any surface).
+  // 3. Collectible reachability: within reasonable distance of some
+  // platform (not floating unreachably).
   for (const col of level.collectibles || []) {
-    let nearest = Infinity;
-    let nearestHeightDiff = Infinity;
+    let nearestDist = Infinity;
+    let nearestHeightAbove = Infinity;
     for (const p of plats) {
-      const d = dist2D(col, p);
-      if (d < nearest) {
-        nearest = d;
-        nearestHeightDiff = col.y - platformTopY(p);
+      const dx = Math.max(p.x - col.x, 0, col.x - (p.x + p.w));
+      if (dx < nearestDist) {
+        nearestDist = dx;
+        nearestHeightAbove = p.y - col.y;
       }
     }
-    if (nearest > 4.5 || nearestHeightDiff > 3.2) {
-      console.log(`  [FAIL] collectible ${col.id} unreachable: nearestPlatDist=${nearest.toFixed(2)} heightAbovePlat=${nearestHeightDiff.toFixed(2)}`);
+    if (nearestDist > 90 || nearestHeightAbove > 110 || nearestHeightAbove < -10) {
+      console.log(`  [FAIL] collectible ${col.id} unreachable: nearestDx=${nearestDist.toFixed(0)} heightAbovePlat=${nearestHeightAbove.toFixed(0)}`);
       failures++;
     } else {
-      console.log(`  [OK  ] collectible ${col.id}: nearestPlatDist=${nearest.toFixed(2)} heightAbovePlat=${nearestHeightDiff.toFixed(2)}`);
+      console.log(`  [OK  ] collectible ${col.id}: nearestDx=${nearestDist.toFixed(0)} heightAbovePlat=${nearestHeightAbove.toFixed(0)}`);
     }
   }
 
-  // 4. Checkpoint must sit on/near a platform surface
+  // 4. Checkpoint must sit on a platform
   for (const cp of level.checkpoints || []) {
     let onPlatform = false;
     for (const p of plats) {
-      const dx = Math.abs(cp.x - p.x);
-      const dz = Math.abs(cp.z - p.z);
-      if (dx < p.w / 2 && dz < p.d / 2) {
-        const platTop = platformTopY(p);
-        if (Math.abs(cp.y - platTop) < 1.0) {
-          onPlatform = true;
-        }
+      if (cp.x >= p.x && cp.x <= p.x + p.w && Math.abs(cp.y - p.y) < 5) {
+        onPlatform = true;
       }
     }
     if (!onPlatform) {
-      console.log(`  [FAIL] checkpoint ${cp.id} not resting on any platform surface`);
+      console.log(`  [FAIL] checkpoint ${cp.id} not resting on a platform surface`);
       failures++;
     } else {
       console.log(`  [OK  ] checkpoint ${cp.id} resting correctly`);
     }
   }
 
-  // 5. Gate/portal reachability from last platform
+  // 5. Gate/portal reachable from last platform
   const exit = level.gate || level.portal;
   if (exit) {
-    const last = plats[plats.length - 1];
-    const d = dist2D(exit, last);
-    if (d > 6) {
-      console.log(`  [WARN] exit is ${d.toFixed(2)} units from last platform (verify visually)`);
+    const last = sorted[sorted.length - 1];
+    const dx = Math.abs(exit.x - (last.x + last.w / 2));
+    if (dx > 200) {
+      console.log(`  [WARN] exit is ${dx.toFixed(0)}px from last platform center (verify visually)`);
       warnings++;
     } else {
-      console.log(`  [OK  ] exit reachable from last platform (dist=${d.toFixed(2)})`);
+      console.log(`  [OK  ] exit reachable from last platform (dx=${dx.toFixed(0)})`);
     }
   }
 
@@ -137,6 +119,4 @@ console.log('='.repeat(60));
 console.log(`RESULT: ${failures} failures, ${warnings} warnings`);
 console.log('='.repeat(60));
 
-if (failures > 0) {
-  process.exit(1);
-}
+if (failures > 0) process.exit(1);

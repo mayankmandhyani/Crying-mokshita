@@ -11,7 +11,6 @@
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
 
-    <!-- Loading screen -->
     <div id="loading-screen">
       <div class="loading-inner">
         <div class="loading-title">The Search for Common Sense</div>
@@ -22,10 +21,8 @@
       </div>
     </div>
 
-    <!-- Fade overlay for transitions -->
     <div id="fade-overlay"></div>
 
-    <!-- HUD -->
     <div id="hud">
       <div id="hud-topleft">
         <div id="cs-counter">
@@ -36,13 +33,11 @@
       </div>
     </div>
 
-    <!-- Level intro title card -->
     <div id="level-intro">
       <div id="level-intro-number"></div>
       <div id="level-intro-title"></div>
     </div>
 
-    <!-- Ending sequence text -->
     <div id="ending-screen">
       <div id="ending-text-1" class="ending-line"></div>
       <div id="ending-text-2" class="ending-line"></div>
@@ -51,25 +46,16 @@
       <button id="restart-btn">Play Again</button>
     </div>
 
-    <!-- Mobile controls -->
     <div id="mobile-controls">
-      <div id="joystick-zone">
-        <div id="joystick-base">
-          <div id="joystick-knob"></div>
-        </div>
+      <div id="dpad">
+        <button id="btn-left" class="dpad-btn">◀</button>
+        <button id="btn-right" class="dpad-btn">▶</button>
       </div>
-      <button id="jump-btn">⬆</button>
+      <button id="btn-jump">▲</button>
     </div>
 
   </div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./three.module.js"
-    }
-  }
-  </script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

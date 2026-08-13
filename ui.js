@@ -1,7 +1,6 @@
 // ui.js
 // Handles all DOM/HUD updates: Common Sense counter, level label,
-// level intro title cards, ending text sequence. Deliberately kept
-// minimal per spec — no debug info, no permanent notification boxes.
+// level intro title cards, ending text sequence.
 
 export class UI {
   constructor() {
@@ -62,27 +61,24 @@ export class UI {
     this.levelIntroTitle.textContent = title;
     this.levelIntro.classList.remove('hide');
     this.levelIntro.classList.add('show');
-
     this._introTimer = setTimeout(() => {
       this.levelIntro.classList.remove('show');
       this.levelIntro.classList.add('hide');
     }, durationMs);
   }
 
-  fadeToBlack(durationMs = 500) {
+  fadeToBlack(durationMs = 400) {
     this.fadeOverlay.style.transitionDuration = `${durationMs}ms`;
     this.fadeOverlay.classList.add('active');
     return new Promise((resolve) => setTimeout(resolve, durationMs));
   }
 
-  fadeFromBlack(durationMs = 500) {
+  fadeFromBlack(durationMs = 400) {
     this.fadeOverlay.style.transitionDuration = `${durationMs}ms`;
     this.fadeOverlay.classList.remove('active');
     return new Promise((resolve) => setTimeout(resolve, durationMs));
   }
 
-  // Force-clear the fade overlay instantly. Used as a safety net so a
-  // failed transition can never leave a permanent black screen (spec 23).
   forceFadeCleared() {
     this.fadeOverlay.style.transitionDuration = '0ms';
     this.fadeOverlay.classList.remove('active');
@@ -97,7 +93,6 @@ export class UI {
       'Happy Raksha Bandhan ❤️',
       'Made with love, chaos, and questionable sibling decisions.',
     ];
-
     lines[1].style.whiteSpace = 'pre-line';
 
     for (let i = 0; i < lines.length; i++) {
@@ -105,7 +100,6 @@ export class UI {
       await this._wait(i === 0 ? 400 : 900);
       lines[i].classList.add('show');
     }
-
     await this._wait(700);
     this.restartBtn.classList.add('show');
     this.restartBtn.onclick = onRestart;

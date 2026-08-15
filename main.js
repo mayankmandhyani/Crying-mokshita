@@ -16,6 +16,7 @@ import { ParticleSystem, Confetti } from './effects.js';
 import { AudioSystem } from './audio.js';
 import { UI } from './ui.js';
 import { DEATH_Y } from './physics.js';
+import { IntroScene } from './intro.js';
 
 const MIN_RENDER_WIDTH = 300; // never show less horizontal world than this (keeps upcoming jumps/hazards visible for planning)
 const MAX_RENDER_WIDTH = 480; // never show more (keeps the character from reading too small on wide screens)
@@ -25,6 +26,7 @@ const TARGET_CHAR_CSS_PX = 50; // desired on-screen character height in CSS pixe
 
 const STATE = {
   LOADING: 'LOADING',
+  INTRO: 'INTRO',
   PLAYING: 'PLAYING',
   DYING: 'DYING',
   RESPAWNING: 'RESPAWNING',
@@ -116,6 +118,10 @@ class Game {
       this.camera.viewH = renderHeight;
       if (this.built) this.camera.snapTo(this.player.x, this.player.y, this.built.levelWidth, this.built.groundY);
     }
+    if (this.introScene) {
+      this.introScene.renderWidth = renderWidth;
+      this.introScene.renderHeight = renderHeight;
+    }
   }
 
   _initInput() {
@@ -141,6 +147,7 @@ class Game {
     });
 
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    this._isTouch = isTouch;
     if (isTouch) this.ui.showMobileControls(true);
 
     const bind = (id, onDown, onUp) => {
@@ -167,10 +174,50 @@ class Game {
       await this._wait(60);
     }
     this.ui.hideLoadingScreen();
-    await this._loadLevel(0, { showIntro: true, fade: false });
-    this.state = STATE.PLAYING;
+
+    // Pre-load Level 1's data/scene so it's instantly ready the moment
+    // the intro cutscene ends or is skipped -- but don't switch to
+    // PLAYING yet; show the intro first.
+    await this._loadLevel(0, { showIntro: false, fade: false });
+
+    this.state = STATE.INTRO;
+    this.ui.setHudVisible(false);
+    this.ui.showMobileControls(false);
+    this.introScene = new IntroScene(this.renderWidth, this.renderHeight);
+    this.introScene.onComplete(() => this._finishIntro());
+    this._introClickHandler = (ev) => this._handleIntroClick(ev);
+    this.canvas.addEventListener('pointerdown', this._introClickHandler);
+
     this.lastTime = performance.now();
     this._loop();
+  }
+
+  _handleIntroClick(ev) {
+    if (this.state !== STATE.INTRO || !this.introScene) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.renderWidth / rect.width;
+    const scaleY = this.renderHeight / rect.height;
+    const x = (ev.clientX - rect.left) * scaleX;
+    const y = (ev.clientY - rect.top) * scaleY;
+    // Any tap during the intro advances/skips it -- not just the skip
+    // button -- since a cutscene the player can't quickly dismiss by
+    // tapping anywhere is a common source of frustration, especially
+    // on repeat plays (e.g. after using the restart button).
+    if (this.introScene.isSkipHit(x, y) || true) {
+      this.introScene.skip();
+    }
+  }
+
+  _finishIntro() {
+    if (this._introClickHandler) {
+      this.canvas.removeEventListener('pointerdown', this._introClickHandler);
+      this._introClickHandler = null;
+    }
+    this.introScene = null;
+    this.ui.setHudVisible(true);
+    if (this._isTouch) this.ui.showMobileControls(true);
+    this.state = STATE.PLAYING;
+    this.ui.showLevelIntro(LEVELS[0].id, LEVELS[0].title);
   }
 
   _wait(ms) {
@@ -223,11 +270,13 @@ class Game {
     dt = Math.min(dt, 1 / 15);
     this.elapsed += dt;
 
-    if (this.state === STATE.PLAYING) this._updatePlaying(dt);
+    if (this.state === STATE.INTRO) {
+      if (this.introScene) this.introScene.update(dt);
+    } else if (this.state === STATE.PLAYING) this._updatePlaying(dt);
     else if (this.state === STATE.DYING) this._updateDying(dt);
     else if (this.state === STATE.ENDING) this._updateEnding(dt);
 
-    if (this.built) this.built.updateMovingPlatforms(dt, this.elapsed);
+    if (this.built && this.state !== STATE.INTRO) this.built.updateMovingPlatforms(dt, this.elapsed);
     this.particles.update(dt);
     this.confetti.update(dt);
 
@@ -405,6 +454,11 @@ class Game {
   _render() {
     const ctx = this.ctx;
     const w = this.renderWidth, h = this.renderHeight;
+
+    if (this.state === STATE.INTRO) {
+      if (this.introScene) this.introScene.draw(ctx);
+      return;
+    }
 
     if (!this.built) {
       ctx.fillStyle = '#0a0812';

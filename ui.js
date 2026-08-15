@@ -4,6 +4,7 @@
 
 export class UI {
   constructor() {
+    this.hud = document.getElementById('hud');
     this.csCount = document.getElementById('cs-count');
     this.csTotal = document.getElementById('cs-total');
     this.csCounter = document.getElementById('cs-counter');
@@ -117,5 +118,9 @@ export class UI {
 
   showMobileControls(show) {
     document.getElementById('mobile-controls').classList.toggle('active', show);
+  }
+
+  setHudVisible(visible) {
+    this.hud.style.display = visible ? '' : 'none';
   }
 }

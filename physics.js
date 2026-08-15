@@ -15,8 +15,8 @@ export const MOVE_SPEED = 165;         // px/s, max horizontal run speed
 export const ACCEL = 1400;             // px/s^2 while input held
 export const DECEL = 1600;             // px/s^2 while no input (ground friction)
 export const AIR_ACCEL = 900;          // slightly less control in air, still responsive
-export const JUMP_VELOCITY = 430;      // px/s initial upward velocity
-export const JUMP_CUT_MULTIPLIER = 0.45; // releasing jump early multiplies remaining upward vel
+export const JUMP_VELOCITY = 560;      // px/s initial upward velocity (raised from 430 -- gives real margin on every jump, not just a razor-thin "technically achievable")
+export const JUMP_CUT_MULTIPLIER = 0.72; // releasing jump early multiplies remaining upward vel. Raised from 0.45 -- a quick tap (very common, especially on mobile touch buttons) was cutting the jump to less than half height, which could fail even the easiest gap in the game. 0.72 still gives taller holds a real height advantage for precision platforming, without punishing a normal quick tap into an unclearable hop.
 export const COYOTE_TIME = 0.11;       // seconds of grace after leaving ground
 export const JUMP_BUFFER_TIME = 0.11;  // seconds a jump press is remembered before landing
 
